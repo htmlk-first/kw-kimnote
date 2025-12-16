@@ -54,25 +54,25 @@ def create_rag_graph(retriever):
     def query_decomposition_node(state: GraphState) -> GraphState:
         """
         - 입력: question
-        - 출력: sub_queries (질문을 검색하기 좋은 2개의 하위 질문 리스트),
+        - 출력: sub_queries (질문을 검색하기 좋은 n개의 하위 질문 리스트),
                 hallucination_retries 초기화
         """
         
         question = state["question"]    # 현재 상태에서 사용자 질문 가져오기
         
-        # LLM에게 "검색하기 좋은 2개의 하위 질문"으로 나누도록 지시하는 프롬프트 템플릿
+        # LLM에게 "검색하기 좋은 개의 하위 질문"으로 나누도록 지시하는 프롬프트 템플릿*
         prompt = ChatPromptTemplate.from_template(
-            "질문을 검색하기 좋은 2개의 한국어 하위 질문으로 분리해줘. "
+            "질문을 검색하기 좋은 n개의 한국어 하위 질문으로 분리해줘. "
             "결과는 줄바꿈으로 구분해.\n질문: {question}"
         )
         
-        # prompt → LLM → 문자열로 파싱하는 체인 생성
+        # prompt를 StrOutputParser을 통해 텍스트로 변환*
         chain = prompt | LLM_MODEL | StrOutputParser()
         
-        # 실제 질문(q)을 넣어 LLM 실행
+        # 실제 질문(q)을 넣어 LLM 실행*
         response = chain.invoke({"question": question})
         
-        # LLM이 반환한 여러 줄의 텍스트를 줄 단위로 split → 공백 제거
+        # LLM이 반환한 여러 줄의 텍스트를 줄 단위로 split → 공백 제거*
         sub_queries = [q.strip() for q in response.split("\n") if q.strip()]
         
         # 재시도 횟수 초기화
@@ -91,8 +91,8 @@ def create_rag_graph(retriever):
         sub_queries = state.get("sub_queries", [])  # 하위 질문 리스트 가져오기 (multi-query*)
         all_docs: List[str] = []                    # 모든 문서 내용을 담을 리스트 초기화 
 
-        for q in sub_queries:
-            # build_retriever에서 만든 ContextualCompressionRetriever 호출
+        for q in sub_queries: #sub_queries의 각 하위 질문에 대해 반복*
+            # build_retriever에서 만든 Ensemble Retriever 호출*
             docs = retriever.invoke(q)
             for d in docs:
                 # 각 Document 객체에서 page_content만 추출하여 리스트에 추가
@@ -113,17 +113,17 @@ def create_rag_graph(retriever):
         question = state["question"]
         documents = state.get("documents", [])
         
-        # LLM을 Structured Output 모드로 사용 (GradeDocuments 스키마에 맞게 출력 강제)
+        # LLM을 Structured Output 모드로 사용 (GradeDocuments 스키마에 맞게 출력 강제)*
         structured_llm_grader = LLM_MODEL.with_structured_output(GradeDocuments)
         
-        # system 메시지: LLM에게 평가자의 역할과 기준을 설명
+        # LLM에게 평가자의 역할과 기준을 설명*
         system_msg = (
             "당신은 검색된 문서가 사용자의 질문과 관련이 있는지 평가하는 채점자입니다. "
-            "문서에 질문과 관련된 키워드나 의미가 포함되어 있다면 'yes'로 평가하세요. "
+            "문서에 질문과 관련된 키워드나 의미가 포함되어 있다면 'yes'로 평가하세요. 그렇지 않다면 'no'로 평가하세요."
             "엄격할 필요는 없습니다. 관련성이 조금이라도 있다면 'yes'를 주세요."
         )
         
-        # human 메시지 템플릿: 실제 질문과 단일 문서를 넣어 호출
+        # 실제 질문과 단일 문서를 넣어 호출*
         grade_prompt = ChatPromptTemplate.from_messages(
             [("system", system_msg), ("human", "질문: {question}\n\n문서: {document}")]
         )
@@ -132,8 +132,8 @@ def create_rag_graph(retriever):
         retrieval_grader = grade_prompt | structured_llm_grader
         
         filtered_docs = []  # 관련성이 yes로 평가된 문서만 모을 리스트 초기화
-        for doc in documents:
-             # 각 문서에 대해 LLM 평가 수행
+        for doc in documents: 
+             # 각 문서에 대해 LLM 평가 수행 *
             score = retrieval_grader.invoke({"question": question, "document": doc})
             # binary_score가 "yes"일 때만 문서 채택
             if score.binary_score.lower() == "yes":
@@ -154,7 +154,6 @@ def create_rag_graph(retriever):
         question = state["question"]
         documents = state.get("documents", [])
         context = "\n\n".join(documents)
-
         retries = state.get("hallucination_retries", 0)
         
         # 질문 유형 감지 및 적응형 guidance 생성
@@ -162,7 +161,9 @@ def create_rag_graph(retriever):
 
         # 질문 유형에 따른 적응형 프롬프트 템플릿
         prompt = ChatPromptTemplate.from_template(
+            "당신은 논문 분석 전문가입니다. 다음 규칙을 반드시 지켜주세요.\n"
             "아래 문서를 바탕으로 질문에 대해 학술적으로 답변해줘.\n"
+            "구체적인 알고리즘명이나 숫자는 정확하게 기억해줘.\n"
             "모든 주장은 제시된 문서의 근거로 뒷받침되어야 합니다.\n"
             "문서에 없는 내용이라면 지어내지 말고 '문서에는 해당 정보가 없습니다'라고 명시하세요.\n"
             "{guidance}\n\n"
@@ -298,7 +299,7 @@ def create_rag_graph(retriever):
         # 현재까지의 재시도 횟수
         retries = state.get("hallucination_retries", 0)
 
-         # 환각 판별용 LLM을 구조화 출력 모드로 사용
+         # 환각 판별용 LLM을 구조화 출력 모드로 사용*
         structured_llm_grader = LLM_MODEL.with_structured_output(GradeHallucination)
         system_msg = (
             "당신은 AI 답변이 참조 문서(Context)에 기반했는지 검증하는 채점자입니다. "
@@ -306,7 +307,7 @@ def create_rag_graph(retriever):
             "만약 문서에 정보가 없어서 '모른다'고 답한 경우에도 'yes'(사실 기반)로 평가하세요."
         )
         
-        # context(문서들)와 generation(답변)을 함께 보여주고 판단을 요청하는 프롬프트
+        # context(문서들)와 generation(답변)을 함께 보여주고 판단을 요청하는 프롬프트*
         grade_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system_msg),
@@ -315,12 +316,12 @@ def create_rag_graph(retriever):
         )
         hallucination_grader = grade_prompt | structured_llm_grader
         
-        # LLM에게 context와 generation을 넘겨 환각 여부 판단 실행
+        # LLM에게 context와 generation을 넘겨 환각 여부 판단 실행*
         score = hallucination_grader.invoke({"context": context, "generation": generation})
         
-        status = score.binary_score.lower() # "yes" 또는 "no"
+        status = score.binary_score.lower() # "yes" 또는 "no"*
         
-        # 환각으로 판정된 경우 재시도 횟수 증가
+        # 환각으로 판정된 경우 재시도 횟수 증가*
         if status == "no":
             retries += 1
             
@@ -333,8 +334,8 @@ def create_rag_graph(retriever):
     def decide_retrieval_route(state: GraphState) -> str:
         """
         grade 노드 이후의 분기 결정
-        - documents가 비어 있으면: web_search 노드로
-        - documents가 있으면: generate 노드로
+        - documents가 비어 있으면: web_search 노드로*
+        - documents가 있으면: generate 노드로*
         """
         documents = state.get("documents", [])
         if not documents:

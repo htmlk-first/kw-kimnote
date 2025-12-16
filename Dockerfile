@@ -35,4 +35,8 @@ CMD ["/bin/bash"]
 
 # 9. 빌드 및 실행 방법
 # 도커 이미지 빌드: docker build -t kimnote .
+
+# Remove-Item Env:\DOCKER_HOST     /    unset DOCKER_HOST
+# docker context ls
+# docker context use desktop-linux
 # 도커 컨테이너 실행: docker run -it --rm -p 8501:8501 -v ${PWD}:/app kimnote

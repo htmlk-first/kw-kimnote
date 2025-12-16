@@ -41,7 +41,7 @@ def build_retriever(file_path: str):
             )
             return None
 
-        # 3. Dense Vector Index (원문 청크 기반)
+        # 3. Dense Vector Index (벡터 기반)
         st.write("3. Vector Index (Dense, 원문 청크) 생성 중...")
         vectorstore = FAISS.from_documents(splits, EMBEDDING_MODEL) # splits의 page_content를 임베딩 → 벡터 DB 구축
         vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 5}) # 검색 시 k=5개의 문서를 벡터 기반으로 가져오는 retriever 생성
@@ -54,7 +54,6 @@ def build_retriever(file_path: str):
 
         # 5. RAPTOR 스타일 계층 요약 인덱스
         st.write("5. RAPTOR 스타일 계층 요약 인덱스 생성 중...")
-        
         # build_raptor_retriever는 그룹 단위 요약 summary 문서를 만들어 summary-only 벡터 인덱스를 구축하는 retriever를 반환
         raptor_retriever = build_raptor_retriever(
             docs=splits,
