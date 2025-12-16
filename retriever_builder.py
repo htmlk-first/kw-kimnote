@@ -52,7 +52,7 @@ def build_retriever(file_path: str):
         bm25_retriever = BM25Retriever.from_documents(splits)
         bm25_retriever.k = 5    # 검색 개수 설정
 
-        # 5. RAPTOR 스타일 계층 요약 인덱스
+        # 5. RAPTOR (계층 요약 기반)
         st.write("5. RAPTOR 스타일 계층 요약 인덱스 생성 중...")
         # build_raptor_retriever는 그룹 단위 요약 summary 문서를 만들어 summary-only 벡터 인덱스를 구축하는 retriever를 반환
         raptor_retriever = build_raptor_retriever(
@@ -74,7 +74,7 @@ def build_retriever(file_path: str):
         # CrossEncoderReranker는 query와 문서 pair를 입력으로 받아 더 정확한 relevance를 계산
         compressor = CrossEncoderReranker(
             model=RERANKER_MODEL,
-            top_n=3,  # 최종적으로 남길 문서 수 (3개만 남김)
+            top_n=5,  # 최종적으로 남길 문서 수 (5개만 남김)
         )
 
         # 최종적으로 **가장 의미 있는 문서만 반환**하는 retriever로 변환
