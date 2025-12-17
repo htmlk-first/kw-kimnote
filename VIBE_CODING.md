@@ -19,7 +19,7 @@
 ### 1. The Vibe (기획 및 의도 전달)
 
 * **Input**: `RAG Project 계획서.pdf`라는 명확한 청사진을 AI에게 제공했습니다.
-* **Prompt**: "이 계획서의 구조(RAPTOR, Ensemble, LangGraph)를 완벽하게 구현하는 코드를 짜줘."라는 강력한 의도를 전달했습니다.
+* **Prompt**: "이 기본적인 솟 코드와 구축할 RAG의 전체적인 구조(RAPTOR, Ensemble, LangGraph)를 알려주고, 이를 이용하여 RAG 시스템을 완성해 줘."라는 강력한 의도를 전달했습니다.
 
 ### 2. The Flow (코드 생성 및 구현)
 
@@ -40,7 +40,3 @@
 * **Framework**: LangChain, LangGraph - AI 애플리케이션 구조화
 * **Interface**: Streamlit - 결과물 시각화
 * **Search**: Tavily, FAISS, RankBM25 - 정보 검색 및 처리
-
-## 💭 Conclusion
-
-Vibe Coding을 통해 우리는 **"어떻게 짤 것인가(How)"**보다 **"무엇을 만들 것인가(What)"**에 더 집중할 수 있었습니다. 이 코드는 단순한 텍스트의 나열이 아니라, 개발자의 아이디어와 AI의 실행력이 만나 빚어낸 결과물입니다.

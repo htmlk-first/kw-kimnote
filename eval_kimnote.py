@@ -89,12 +89,12 @@ def predict_kimnote(inputs: dict) -> dict:
 
 # 3.1 답변 정확성 평가 (QA Correctness)
 class CorrectnessScore(BaseModel):
-    score: int = Field(description="답변의 정확성 점수 (1: 부정확 ~ 5: 매우 정확)")
+    score: float = Field(description="답변의 정확성 점수 (0: 부정확 ~ 5: 매우 정확)")
     reasoning: str = Field(description="점수 부여 이유")
 
 def evaluate_correctness(run, example):
     """
-    정답(Ground Truth)과 예측(Prediction)을 비교하여 정확성을 1~5점으로 평가
+    정답(Ground Truth)과 예측(Prediction)을 비교하여 정확성을 0~1점으로 평가
     """
     prediction = run.outputs["output"]
     reference = example.outputs["answer"]
@@ -108,10 +108,7 @@ def evaluate_correctness(run, example):
 [실제 정답]: {reference}
 [예측 답변]: {prediction}
 
-예측 답변이 실제 정답의 핵심 의미를 잘 포함하고 있는지 판단하여 1점에서 5점 사이의 점수를 부여하세요.
-1점: 완전히 틀림
-3점: 일부 맞으나 누락되거나 부정확한 내용 있음
-5점: 핵심 내용을 정확하게 포함함
+예측 답변이 실제 정답의 핵심 의미를 잘 포함하고 있는지 판단하여 0점에서 1점 사이의 점수를 부여하세요.
 """
     )
     
@@ -125,7 +122,7 @@ def evaluate_correctness(run, example):
 
     return {
         "key": "correctness",
-        "score": result.score / 5.0,  # 0~1 스케일로 정규화
+        "score": result.score / 5.0,  # 0~1 사이 점수로 변환
         "comment": result.reasoning
     }
 
